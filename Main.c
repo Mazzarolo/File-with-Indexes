@@ -107,16 +107,6 @@ void liberarLista(No **inicio)
     *inicio = NULL;
 }
 
-void lst_imprime(No *inicio)
-{
-    No *p = inicio;
-    while (p != NULL)
-    {
-        printf("info = %d\n", p->idx.matr);
-        p = p->prox;
-    }
-}
-
 void mostra(FILE *arq)
 {
     reg_aluno aluno;
@@ -198,7 +188,6 @@ void main()
         case 1:
             printf("\nAlunos gravados no arquivo: \n");
             mostra(arq);
-            lst_imprime(lst);
             break;
         case 2:
             printf("\nDigite a matricula a ser buscada: ");

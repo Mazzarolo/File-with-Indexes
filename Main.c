@@ -70,7 +70,41 @@ void criaLista(FILE *arq, No **inicio)
     rewind(arq);
     while (fread(&aluno, sizeof(aluno), 1, arq))
         if (aluno.excluido == 0)
-            listaInsereOrdenado(inicio, aluno.matr, ftell(arq));
+            listaInsereOrdenado(inicio, aluno.matr, ftell(arq) - sizeof(aluno));
+}
+
+void retirarLista(No **inicio, int matr)
+{
+    No *ant = NULL;
+    No *p = *inicio;
+
+    while (p != NULL && p->idx.matr != matr)
+    {
+        ant = p;
+        p = p->prox;
+    }
+
+    if (p == NULL)
+        return;
+
+    if (ant == NULL)
+        *inicio = p->prox;
+    else
+        ant->prox = p->prox;
+
+    free(p);
+}
+
+void liberarLista(No **inicio)
+{
+    No *p = *inicio;
+    while (p != NULL)
+    {
+        No *t = p->prox;
+        free(p);
+        p = t;
+    }
+    *inicio = NULL;
 }
 
 void lst_imprime(No *inicio)
@@ -92,29 +126,41 @@ void mostra(FILE *arq)
             printf("%d\t%s\t%d\t%d\n", aluno.matr, aluno.nome, aluno.nota1, aluno.nota2);
 }
 
-int pesquisa(FILE *arq, No *lst, int matr, reg_aluno *al)
+int pesquisa(FILE *arq, No *inicio, int matr, reg_aluno *al)
 {
     reg_aluno aluno;
-    rewind(arq);
-    while (fread(&aluno, sizeof(aluno), 1, arq))
-        if (aluno.matr == matr && aluno.excluido == 0)
+    No *p = inicio;
+
+    while (p != NULL)
+    {
+        if (p->idx.matr == matr)
         {
-            *al = aluno;
-            return 1;
+            rewind(arq);
+            fseek(arq, p->idx.pos_seek, SEEK_SET);
+            fread(&aluno, sizeof(aluno), 1, arq);
+            if (!aluno.excluido)
+            {
+                *al = aluno;
+                return 1;
+            }
         }
+        p = p->prox;
+    }
+
     return 0;
 }
 
-void exclui(FILE *arq, No *lst, int matr)
+void exclui(FILE *arq, No **lst, int matr)
 {
     reg_aluno aluno;
-    if (pesquisa(arq, lst, matr, &aluno))
+    if (pesquisa(arq, *lst, matr, &aluno))
     {
         int excl = 1;
         printf("Excluindo: %s\n", aluno.nome);
         fseek(arq, -1 * sizeof(int), SEEK_CUR);
         fwrite(&excl, sizeof(int), 1, arq);
         fflush(arq);
+        retirarLista(lst, matr);
     }
 }
 
@@ -171,7 +217,7 @@ void main()
         case 4:
             printf("\nDigite a matricula a ser excluida: ");
             scanf("%d", &matr);
-            exclui(arq, lst, matr);
+            exclui(arq, &lst, matr);
             break;
         case 5:
             printf("\nSaindo...\n\n");
@@ -181,5 +227,6 @@ void main()
             break;
         }
     } while (op != 5);
+    liberarLista(&lst);
     fclose(arq);
 }
